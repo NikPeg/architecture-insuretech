@@ -1,123 +1,127 @@
 graph TB
-    subgraph Legend["📋 Легенда"]
-        L1["🟢 Active - обрабатывает трафик"]
-        L2["🟡 Standby - готов к переключению"]
-        L3["🔴 Failed - отказ компонента"]
-        L4["✅ Health Check успешен"]
-        L5["❌ Health Check неуспешен"]
-    end
-
-    subgraph NormalOperation["✅ Нормальная работа - Active-Active"]
-        User1["👤 Пользователь<br/>Москва"]
-        User2["👤 Пользователь<br/>СПб"]
-        User3["👤 Пользователь<br/>Екатеринбург"]
-
-        GSLB_N["🌍 GSLB<br/>━━━━━━━━━━━━━━<br/>Status: Active<br/>Health: ✅ Both DCs"]
-
-        DC1_N["🟢 ЦОД-1 Москва<br/>━━━━━━━━━━━━━━<br/>Status: Active<br/>Load: 50%<br/>Health: ✅"]
-        DC2_N["🟢 ЦОД-2 СПб<br/>━━━━━━━━━━━━━━<br/>Status: Active<br/>Load: 50%<br/>Health: ✅"]
-
-        User1 -->|"Geographic routing<br/>Low latency"| GSLB_N
-        User2 -->|"Geographic routing<br/>Low latency"| GSLB_N
-        User3 -->|"Geographic routing<br/>Low latency"| GSLB_N
-
-        GSLB_N -->|"50% traffic<br/>Nearest DC"| DC1_N
-        GSLB_N -->|"50% traffic<br/>Nearest DC"| DC2_N
-    end
-
-    subgraph Scenario1["⚠️ Сценарий 1: Отказ ЦОД-1"]
-        User1_S1["👤 Пользователь<br/>Москва"]
-        User2_S1["👤 Пользователь<br/>СПб"]
-        User3_S1["👤 Пользователь<br/>Екатеринбург"]
-
-        GSLB_S1["🌍 GSLB<br/>━━━━━━━━━━━━━━<br/>Status: Failover mode<br/>Health: ❌ DC1, ✅ DC2"]
-
-        DC1_S1["🔴 ЦОД-1 Москва<br/>━━━━━━━━━━━━━━<br/>Status: Failed<br/>Health: ❌<br/>RTO: 10-30 sec"]
-        DC2_S1["🟢 ЦОД-2 СПб<br/>━━━━━━━━━━━━━━<br/>Status: Active<br/>Load: 100%<br/>Health: ✅<br/>Auto-scale: ON"]
-
-        User1_S1 -->|"Failover<br/>DNS update"| GSLB_S1
-        User2_S1 -->|"Direct routing"| GSLB_S1
-        User3_S1 -->|"Failover<br/>DNS update"| GSLB_S1
-
-        GSLB_S1 -->|"0% traffic"| DC1_S1
-        GSLB_S1 -->|"100% traffic<br/>All requests"| DC2_S1
-
-        DC2_S1 -.->|"Auto-scale<br/>pods & nodes"| AutoScale["⚡ Cluster Autoscaler<br/>+ HPA<br/>━━━━━━━━━━━━━━<br/>Scale up to<br/>handle 100% load"]
-    end
-
-    subgraph DBFailover["🗄️ Database Failover Scenario"]
-        subgraph DBNormal["Normal State"]
-            DB1_M_N["🟢 PG Master DC1<br/>━━━━━━━━━━━━━━<br/>Read/Write<br/>Health: ✅"]
-            DB2_M_N["🟢 PG Master DC2<br/>━━━━━━━━━━━━━━<br/>Read/Write<br/>Health: ✅"]
-            DB1_R_N["🟢 PG Replica DC1<br/>━━━━━━━━━━━━━━<br/>Read only"]
-            DB2_R_N["🟢 PG Replica DC2<br/>━━━━━━━━━━━━━━<br/>Read only"]
-
-            DB1_M_N <-->|"Sync replication<br/>Patroni"| DB2_M_N
-            DB1_M_N -->|Async| DB1_R_N
-            DB2_M_N -->|Async| DB2_R_N
-        end
-
-        subgraph DBFail["Master DC1 Failed"]
-            DB1_M_F["🔴 PG Master DC1<br/>━━━━━━━━━━━━━━<br/>Status: Failed<br/>Health: ❌"]
-            DB2_M_F["🟢 PG Master DC2<br/>━━━━━━━━━━━━━━<br/>Read/Write<br/>Primary role"]
-            DB1_R_F["🟡 PG Replica DC1<br/>━━━━━━━━━━━━━━<br/>Promoted to Master<br/>RTO: 1-2 min"]
-            DB2_R_F["🟢 PG Replica DC2<br/>━━━━━━━━━━━━━━<br/>Read only"]
-
-            Patroni["🔧 Patroni<br/>━━━━━━━━━━━━━━<br/>Auto-failover<br/>Leader election"]
-
-            DB1_M_F -.->|"Detect failure<br/>10 seconds"| Patroni
-            Patroni -->|"Promote replica"| DB1_R_F
-            DB1_R_F <-->|"New sync pair"| DB2_M_F
-            DB2_M_F -->|Async| DB2_R_F
-        end
-    end
-
-    subgraph HealthChecks["🏥 Health Check Architecture"]
-        HC1["Level 1: GSLB<br/>━━━━━━━━━━━━━━<br/>HTTP/HTTPS check<br/>Interval: 10s<br/>Timeout: 5s<br/>Failures: 3"]
-        HC2["Level 2: ALB<br/>━━━━━━━━━━━━━━<br/>TCP check<br/>Interval: 5s<br/>Timeout: 3s<br/>Failures: 2"]
-        HC3["Level 3: Ingress<br/>━━━━━━━━━━━━━━<br/>HTTP check<br/>Interval: 3s<br/>Timeout: 2s<br/>Failures: 2"]
-        HC4["Level 4: Pod<br/>━━━━━━━━━━━━━━<br/>Liveness: 10s<br/>Readiness: 5s<br/>Startup: 30s"]
-        HC5["Level 5: Database<br/>━━━━━━━━━━━━━━<br/>Patroni API<br/>Interval: 10s<br/>Auto-failover: ON"]
-
-        HC1 -->|Check endpoint| HC2
-        HC2 -->|Check endpoint| HC3
-        HC3 -->|Check endpoint| HC4
-        HC4 -.->|DB connection| HC5
-    end
-
-    subgraph RecoveryPlan["🔄 Recovery Time Objectives"]
-        RTO1["Pod failure<br/>━━━━━━━━━━━━━━<br/>Detection: 10s<br/>Recovery: 30-60s<br/>Total RTO: 1-2 min"]
-        RTO2["Node failure<br/>━━━━━━━━━━━━━━<br/>Detection: 30s<br/>Recovery: 2-3 min<br/>Total RTO: 3-4 min"]
-        RTO3["DB Master failure<br/>━━━━━━━━━━━━━━<br/>Detection: 10s<br/>Failover: 1-2 min<br/>Total RTO: 2-3 min"]
-        RTO4["Full DC failure<br/>━━━━━━━━━━━━━━<br/>Detection: 10s<br/>DNS switch: 10-30s<br/>Scale up: 5-15 min<br/>Total RTO: 15-20 min"]
-        RTO5["Disaster<br/>Both DCs failed<br/>━━━━━━━━━━━━━━<br/>Detection: 1 min<br/>Restore from backup: 30 min<br/>Deploy apps: 10 min<br/>Testing: 5 min<br/>Total RTO: 45 min"]
-
-        RTO1 -->|Escalate if fails| RTO2
-        RTO2 -->|Escalate if fails| RTO4
-        RTO3 -.->|Independent| RTO4
-        RTO4 -->|Worst case| RTO5
-    end
-
-    subgraph DataProtection["💾 Data Protection - RPO Strategy"]
-        Strategy1["Sync Replication<br/>━━━━━━━━━━━━━━<br/>Between DC masters<br/>RPO: 0 sec<br/>For critical writes"]
-        Strategy2["Incremental Backup<br/>━━━━━━━━━━━━━━<br/>Every 15 minutes<br/>RPO: 15 min<br/>pgBackRest to S3"]
-        Strategy3["Full Backup<br/>━━━━━━━━━━━━━━<br/>Daily at 02:00<br/>Retention: 90 days<br/>Compressed & encrypted"]
-        Strategy4["Cross-region replication<br/>━━━━━━━━━━━━━━<br/>S3 to S3<br/>Async replication<br/>For disaster recovery"]
-
-        Strategy1 -->|"Primary protection"| Strategy2
-        Strategy2 -->|"Based on"| Strategy3
-        Strategy3 -->|"Replicated"| Strategy4
-    end
-
+    Title["<b>FAILOVER STRATEGY & DISASTER RECOVERY PLAN</b><br/>InsureTech - Active-Active с георезервированием"]
+    
+    Title --> Section1
+    Title --> Section2
+    
+    %% СЕКЦИЯ 1: НОРМАЛЬНАЯ РАБОТА И ОТКАЗ ЗОНЫ
+    Section1["<b>ЧАСТЬ 1: APPLICATION FAILOVER</b>"]
+    
+    Section1 --> NormalOp["<b>✅ НОРМАЛЬНАЯ РАБОТА</b><br/>Active-Active режим"]
+    
+    NormalOp --> Users["👥 ПОЛЬЗОВАТЕЛИ<br/>из разных регионов РФ"]
+    Users --> GSLB1["🌍 GSLB<br/>Global Server Load Balancer<br/>━━━━━━━━━━━━━━━━<br/>✅ Health: Both DCs OK<br/>⚖️ Load: Balanced"]
+    
+    GSLB1 --> DC1_Normal["🟢 ЦОД-1 МОСКВА<br/>━━━━━━━━━━━━━━━━<br/>Status: ACTIVE<br/>Load: 50%<br/>K8s Cluster: Running<br/>Apps: 3-20 pods each"]
+    GSLB1 --> DC2_Normal["🟢 ЦОД-2 СПБ/РЕГИОН<br/>━━━━━━━━━━━━━━━━<br/>Status: ACTIVE<br/>Load: 50%<br/>K8s Cluster: Running<br/>Apps: 3-20 pods each"]
+    
+    DC1_Normal -.->|"Sync DB replication"| DC2_Normal
+    
+    %% ОТКАЗ ЗОНЫ
+    Section1 --> FailoverOp["<b>⚠️ ОТКАЗ ЦОД-1</b><br/>Failover сценарий"]
+    
+    FailoverOp --> UsersF["👥 ПОЛЬЗОВАТЕЛИ<br/>автоматически перенаправлены"]
+    UsersF --> GSLB_F["🌍 GSLB<br/>━━━━━━━━━━━━━━━━<br/>⚠️ Failover Mode<br/>❌ DC1: Failed<br/>✅ DC2: Active"]
+    
+    GSLB_F --> DC1_Failed["🔴 ЦОД-1 МОСКВА<br/>━━━━━━━━━━━━━━━━<br/>Status: FAILED<br/>Traffic: 0%<br/>━━━━━━━━━━━━━━━━<br/>⏱️ RTO: 10-30 sec<br/>DNS propagation"]
+    
+    GSLB_F --> DC2_Failover["🟢 ЦОД-2 СПБ/РЕГИОН<br/>━━━━━━━━━━━━━━━━<br/>Status: ACTIVE<br/>Load: 100% ⬆️<br/>━━━━━━━━━━━━━━━━<br/>⚡ AUTO-SCALING<br/>HPA: pods 3→20<br/>Cluster: nodes 3→15"]
+    
+    %% СЕКЦИЯ 2: DATABASE FAILOVER
+    Section2["<b>ЧАСТЬ 2: DATABASE FAILOVER</b>"]
+    
+    Section2 --> DBNormalSection["<b>✅ НОРМАЛЬНАЯ РАБОТА БД</b>"]
+    
+    DBNormalSection --> DB1_Master_N["🟢 PostgreSQL Master<br/>ЦОД-1 Москва<br/>━━━━━━━━━━━━━━━━<br/>Role: PRIMARY<br/>Operations: Read/Write<br/>Status: Healthy"]
+    
+    DBNormalSection --> DB2_Master_N["🟢 PostgreSQL Master<br/>ЦОД-2 СПб<br/>━━━━━━━━━━━━━━━━<br/>Role: PRIMARY<br/>Operations: Read/Write<br/>Status: Healthy"]
+    
+    DB1_Master_N <-->|"🔄 СИНХРОННАЯ<br/>репликация<br/>Patroni streaming"| DB2_Master_N
+    
+    DB1_Master_N --> DB1_Replica["🟢 Replica 1,2<br/>ЦОД-1<br/>━━━━━━━━━━<br/>Read only<br/>Async repl"]
+    DB2_Master_N --> DB2_Replica["🟢 Replica 1,2<br/>ЦОД-2<br/>━━━━━━━━━━<br/>Read only<br/>Async repl"]
+    
+    %% ОТКАЗ MASTER БД
+    Section2 --> DBFailSection["<b>⚠️ ОТКАЗ MASTER БД</b>"]
+    
+    DBFailSection --> DB1_Master_F["🔴 PostgreSQL Master<br/>ЦОД-1 Москва<br/>━━━━━━━━━━━━━━━━<br/>Status: FAILED ❌<br/>Connection: Lost"]
+    
+    DB1_Master_F -.->|"Detect failure<br/>10 seconds"| PatroniFailover["🔧 PATRONI<br/>Auto-Failover Manager<br/>━━━━━━━━━━━━━━━━<br/>1️⃣ Detect failure<br/>2️⃣ Leader election via etcd<br/>3️⃣ Promote replica<br/>━━━━━━━━━━━━━━━━<br/>⏱️ Total: 1-2 minutes"]
+    
+    PatroniFailover --> DB1_Replica_Promoted["🟡 PostgreSQL Replica<br/>ЦОД-1 Москва<br/>━━━━━━━━━━━━━━━━<br/>Status: PROMOTED ⬆️<br/>New Role: MASTER<br/>Operations: Read/Write"]
+    
+    PatroniFailover --> DB2_Master_Continue["🟢 PostgreSQL Master<br/>ЦОД-2 СПб<br/>━━━━━━━━━━━━━━━━<br/>Status: ACTIVE<br/>Role: PRIMARY<br/>Operations: Continue"]
+    
+    DB1_Replica_Promoted <-->|"New sync pair<br/>Replication restored"| DB2_Master_Continue
+    
+    Title --> Section3
+    
+    %% СЕКЦИЯ 3: HEALTH CHECKS
+    Section3["<b>ЧАСТЬ 3: HEALTH CHECK ARCHITECTURE</b>"]
+    
+    Section3 --> HC_Start["🏁 START<br/>Request from user"]
+    
+    HC_Start --> HC1["<b>Level 1: GSLB</b><br/>━━━━━━━━━━━━━━━━<br/>Type: HTTP/HTTPS<br/>Interval: 10 sec<br/>Timeout: 5 sec<br/>Failures to mark down: 3<br/>━━━━━━━━━━━━━━━━<br/>Action: Remove DC from rotation"]
+    
+    HC1 --> HC2["<b>Level 2: ALB</b><br/>Application Load Balancer<br/>━━━━━━━━━━━━━━━━<br/>Type: TCP health check<br/>Interval: 5 sec<br/>Timeout: 3 sec<br/>Failures to mark down: 2<br/>━━━━━━━━━━━━━━━━<br/>Action: Remove node from pool"]
+    
+    HC2 --> HC3["<b>Level 3: Ingress</b><br/>NGINX Ingress Controller<br/>━━━━━━━━━━━━━━━━<br/>Type: HTTP check<br/>Interval: 3 sec<br/>Timeout: 2 sec<br/>Failures to mark down: 2<br/>━━━━━━━━━━━━━━━━<br/>Action: Route to healthy pods"]
+    
+    HC3 --> HC4["<b>Level 4: Pod</b><br/>Kubernetes Probes<br/>━━━━━━━━━━━━━━━━<br/>Liveness: check every 10s<br/>Readiness: check every 5s<br/>Startup: initial 30s<br/>━━━━━━━━━━━━━━━━<br/>Action: Restart or remove from service"]
+    
+    HC4 --> HC5["<b>Level 5: Database</b><br/>━━━━━━━━━━━━━━━━<br/>Patroni API health check<br/>Interval: 10 sec<br/>Auto-failover: ENABLED<br/>━━━━━━━━━━━━━━━━<br/>Action: Promote replica if master fails"]
+    
+    HC5 --> HC_End["✅ END<br/>Request processed"]
+    
+    Title --> Section4
+    
+    %% СЕКЦИЯ 4: RTO SCENARIOS
+    Section4["<b>ЧАСТЬ 4: RECOVERY TIME OBJECTIVES</b>"]
+    
+    Section4 --> RTO_Header["<b>RTO по типам отказов</b><br/>(от меньшего к большему)"]
+    
+    RTO_Header --> RTO1["<b>1️⃣ POD FAILURE</b><br/>━━━━━━━━━━━━━━━━<br/>Detection: 10 seconds<br/>Recovery: 30-60 seconds<br/>━━━━━━━━━━━━━━━━<br/>TOTAL RTO: 1-2 minutes<br/>━━━━━━━━━━━━━━━━<br/>Impact: Minimal<br/>K8s auto-restart pod"]
+    
+    RTO1 --> RTO2["<b>2️⃣ NODE FAILURE</b><br/>━━━━━━━━━━━━━━━━<br/>Detection: 30 seconds<br/>Recovery: 2-3 minutes<br/>━━━━━━━━━━━━━━━━<br/>TOTAL RTO: 3-4 minutes<br/>━━━━━━━━━━━━━━━━<br/>Impact: Medium<br/>K8s reschedule pods to healthy nodes"]
+    
+    RTO2 --> RTO3["<b>3️⃣ DB MASTER FAILURE</b><br/>━━━━━━━━━━━━━━━━<br/>Detection: 10 seconds<br/>Failover: 1-2 minutes<br/>━━━━━━━━━━━━━━━━<br/>TOTAL RTO: 2-3 minutes<br/>━━━━━━━━━━━━━━━━<br/>Impact: Medium<br/>Patroni auto-promote replica"]
+    
+    RTO3 --> RTO4["<b>4️⃣ FULL DC FAILURE</b><br/>━━━━━━━━━━━━━━━━<br/>Detection: 10 seconds<br/>DNS switch: 10-30 seconds<br/>Auto-scale: 5-15 minutes<br/>━━━━━━━━━━━━━━━━<br/>TOTAL RTO: 15-20 minutes<br/>━━━━━━━━━━━━━━━━<br/>Impact: High<br/>GSLB redirect + scale up second DC"]
+    
+    RTO4 --> RTO5["<b>5️⃣ DISASTER SCENARIO</b><br/>Both DCs Failed<br/>━━━━━━━━━━━━━━━━<br/>Detection: 1 minute<br/>Restore from backup: 20-30 min<br/>Deploy applications: 10 min<br/>Testing: 5 minutes<br/>━━━━━━━━━━━━━━━━<br/>TOTAL RTO: 45 minutes ⚠️<br/>━━━━━━━━━━━━━━━━<br/>Impact: CRITICAL<br/>Manual intervention required"]
+    
+    Title --> Section5
+    
+    %% СЕКЦИЯ 5: RPO STRATEGY
+    Section5["<b>ЧАСТЬ 5: DATA PROTECTION - RPO STRATEGY</b>"]
+    
+    Section5 --> RPO_Header["<b>Многоуровневая защита данных</b><br/>RPO Target: 15 minutes"]
+    
+    RPO_Header --> Strategy1["<b>LAYER 1: Sync Replication</b><br/>━━━━━━━━━━━━━━━━<br/>Between DC Masters<br/>Technology: PostgreSQL streaming<br/>Managed by: Patroni<br/>━━━━━━━━━━━━━━━━<br/>RPO: 0 seconds<br/>For: Critical transactions"]
+    
+    Strategy1 --> Strategy2["<b>LAYER 2: Incremental Backup</b><br/>━━━━━━━━━━━━━━━━<br/>Frequency: Every 15 minutes<br/>Technology: pgBackRest<br/>Destination: S3 Storage<br/>━━━━━━━━━━━━━━━━<br/>RPO: 15 minutes ⚠️<br/>For: Point-in-time recovery"]
+    
+    Strategy2 --> Strategy3["<b>LAYER 3: Full Backup</b><br/>━━━━━━━━━━━━━━━━<br/>Frequency: Daily at 02:00 AM<br/>Compression: Enabled<br/>Encryption: AES-256<br/>━━━━━━━━━━━━━━━━<br/>Retention: 90 days<br/>For: Long-term recovery"]
+    
+    Strategy3 --> Strategy4["<b>LAYER 4: Cross-Region Replication</b><br/>━━━━━━━━━━━━━━━━<br/>S3 to S3 replication<br/>Async replication<br/>━━━━━━━━━━━━━━━━<br/>Purpose: Disaster recovery<br/>Geographic protection"]
+    
+    Strategy4 --> RPO_End["✅ DATA PROTECTED<br/>Maximum data loss: 15 min<br/>Recovery point guaranteed"]
+    
     %% Styling
-    classDef activeStyle fill:#4caf50,stroke:#ffffff,stroke-width:3px,color:#ffffff
-    classDef failedStyle fill:#f44336,stroke:#ffffff,stroke-width:3px,color:#ffffff
-    classDef standbyStyle fill:#ff9800,stroke:#ffffff,stroke-width:3px,color:#ffffff
-    classDef healthStyle fill:#2196f3,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    classDef recoveryStyle fill:#9c27b0,stroke:#ffffff,stroke-width:2px,color:#ffffff
-
-    class DC1_N,DC2_N,DC2_S1,DB1_M_N,DB2_M_N,DB1_R_N,DB2_R_N,DB2_M_F,DB2_R_F activeStyle
-    class DC1_S1,DB1_M_F failedStyle
-    class DB1_R_F standbyStyle
+    classDef titleStyle fill:#1a237e,stroke:#ffffff,stroke-width:4px,color:#ffffff,font-size:16px
+    classDef sectionStyle fill:#283593,stroke:#ffffff,stroke-width:3px,color:#ffffff,font-size:14px
+    classDef activeStyle fill:#2e7d32,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    classDef failedStyle fill:#c62828,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    classDef standbyStyle fill:#f57c00,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    classDef healthStyle fill:#0277bd,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef recoveryStyle fill:#6a1b9a,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef dataStyle fill:#00695c,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    
+    class Title titleStyle
+    class Section1,Section2,Section3,Section4,Section5 sectionStyle
+    class DC1_Normal,DC2_Normal,DC2_Failover,DB1_Master_N,DB2_Master_N,DB1_Replica,DB2_Replica,DB2_Master_Continue activeStyle
+    class DC1_Failed,DB1_Master_F failedStyle
+    class DB1_Replica_Promoted,PatroniFailover standbyStyle
     class HC1,HC2,HC3,HC4,HC5 healthStyle
     class RTO1,RTO2,RTO3,RTO4,RTO5 recoveryStyle
+    class Strategy1,Strategy2,Strategy3,Strategy4 dataStyle
