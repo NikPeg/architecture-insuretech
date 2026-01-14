@@ -1,0 +1,20 @@
+prometheus:
+  enabled: true
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+  additionalServiceMonitors:
+    - name: scalable-pod-identifier-sm
+      namespace: default
+      labels:
+        serviceMonitorSelector: prometheus
+      endpoints:
+        - port: metrics
+          path: /metrics
+          interval: 15s
+      namespaceSelector:
+        matchNames:
+          - default
+      selector:
+        matchLabels:
+          app: scalable-pod-identifier

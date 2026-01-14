@@ -1,0 +1,13 @@
+NAME                                       CPU(cores)   MEMORY(bytes)
+scalable-pod-identifier-667fd569ff-9qb9k   50m          25Mi
+scalable-pod-identifier-667fd569ff-cvc7s   48m          24Mi
+scalable-pod-identifier-667fd569ff-dcwbr   51m          25Mi
+scalable-pod-identifier-667fd569ff-dfdxf   49m          26Mi
+scalable-pod-identifier-667fd569ff-m9676   52m          24Mi
+scalable-pod-identifier-667fd569ff-r4hc9   47m          25Mi
+scalable-pod-identifier-667fd569ff-vbvl6   50m          24Mi
+
+# Примечание: Метрики во время нагрузки
+# CPU: 47-52m (милликоры) - умеренная нагрузка
+# Memory: 24-26Mi - близко к лимиту 30Mi (80-87% утилизации)
+# Равномерное распределение нагрузки между подами

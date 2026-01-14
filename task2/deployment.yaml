@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scalable-pod-identifier
+  labels:
+    app: scalable-pod-identifier
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scalable-pod-identifier
+  template:
+    metadata:
+      labels:
+        app: scalable-pod-identifier
+    spec:
+      containers:
+      - name: scalable-pod-identifier
+        image: scalable-pod-identifier:v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          requests:
+            memory: "20Mi"
+            cpu: "100m"
+          limits:
+            memory: "30Mi"
+            cpu: "200m"

@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: scalable-pod-identifier-sm
+  namespace: default
+  labels:
+    serviceMonitorSelector: prometheus
+    release: prometheus-operator
+spec:
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+  namespaceSelector:
+    matchNames:
+      - default
+  selector:
+    matchLabels:
+      app: scalable-pod-identifier

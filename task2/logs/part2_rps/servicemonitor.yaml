@@ -1,0 +1,26 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"monitoring.coreos.com/v1","kind":"ServiceMonitor","metadata":{"annotations":{},"labels":{"release":"prometheus-operator","serviceMonitorSelector":"prometheus"},"name":"scalable-pod-identifier-sm","namespace":"default"},"spec":{"endpoints":[{"interval":"15s","path":"/metrics","port":"http"}],"namespaceSelector":{"matchNames":["default"]},"selector":{"matchLabels":{"app":"scalable-pod-identifier"}}}}
+  creationTimestamp: "2026-01-14T14:14:22Z"
+  generation: 1
+  labels:
+    release: prometheus-operator
+    serviceMonitorSelector: prometheus
+  name: scalable-pod-identifier-sm
+  namespace: default
+  resourceVersion: "328099"
+  uid: 2a0097f4-c203-4453-b8ca-bf7bf2f99640
+spec:
+  endpoints:
+  - interval: 15s
+    path: /metrics
+    port: http
+  namespaceSelector:
+    matchNames:
+    - default
+  selector:
+    matchLabels:
+      app: scalable-pod-identifier
