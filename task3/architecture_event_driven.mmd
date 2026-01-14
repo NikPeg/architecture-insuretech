@@ -1,0 +1,82 @@
+graph TB
+    %% External Systems and Users
+    Client[("Клиент")]
+    PaymentSystem["Платёжный сервис"]
+    PartnerSystems["Системы партнёров"]
+    InsCompany["Страховые компании<br/>1-10"]
+
+    %% Frontend Layer
+    subgraph Frontend["Frontend"]
+        WebApp["InsureTech Web<br/>JavaScript, React"]
+    end
+
+    %% Core Services Layer
+    subgraph CoreServices["Core Services"]
+        ClientInfo["client-info<br/>Kotlin, SpringBoot<br/>Управление клиентами"]
+        
+        CoreApp["core-app<br/>Kotlin, SpringBoot<br/>Обработка страховок<br/><br/>Локальная реплика продуктов"]
+        
+        InsProductAgg["ins-product-aggregator<br/>Kotlin, SpringBoot<br/>Агрегация от страховых компаний<br/><br/>Publisher событий"]
+        
+        InsCompSettle["ins-comp-settlement<br/>Kotlin, SpringBoot<br/>Взаиморасчёты<br/><br/>Локальные реплики:<br/>продуктов и страховок"]
+    end
+
+    %% Event Streaming Platform
+    subgraph EventPlatform["Event Streaming"]
+        Kafka["Apache Kafka<br/>Event Broker<br/><br/>Topics:<br/>insurance-products<br/>insurance-policies<br/>client-data"]
+    end
+
+    %% Data Layer
+    subgraph DataLayer["Data Layer"]
+        CoreDB["core-db<br/>PostgreSQL<br/>+ Outbox таблица"]
+        
+        InsProductDB["ins-product-agg-db<br/>PostgreSQL<br/>+ Outbox таблица"]
+        
+        InsSettleDB["ins-comp-settlement-db<br/>PostgreSQL"]
+    end
+
+    %% User interactions
+    Client -->|HTTP/HTTPS| WebApp
+    
+    %% Frontend to Backend
+    WebApp -->|REST| ClientInfo
+    WebApp -->|REST| CoreApp
+    
+    %% External integrations
+    PartnerSystems -->|REST API| CoreApp
+    CoreApp -->|REST| PaymentSystem
+    
+    %% Event-Driven interactions
+    InsProductAgg -->|Publish Events<br/>ProductUpdated<br/>ProductCreated| Kafka
+    
+    CoreApp -->|Publish Events<br/>PolicyCreated<br/>PolicyUpdated| Kafka
+    
+    ClientInfo -->|Publish Events<br/>ClientCreated<br/>ClientUpdated| Kafka
+    
+    Kafka -->|Subscribe<br/>Product events| CoreApp
+    
+    Kafka -->|Subscribe<br/>Product & Policy events| InsCompSettle
+    
+    %% Async external calls
+    InsProductAgg -.->|SOAP/REST<br/>Периодически| InsCompany
+    
+    InsCompSettle -.->|REST<br/>Реестр раз в месяц| InsCompany
+    
+    %% Database connections
+    ClientInfo -->|JDBC| CoreDB
+    CoreApp -->|JDBC<br/>Transactional Outbox| CoreDB
+    InsProductAgg -->|JDBC<br/>Transactional Outbox| InsProductDB
+    InsCompSettle -->|JDBC| InsSettleDB
+
+    %% Styling
+    classDef personStyle fill:#08427B,stroke:#052E56,color:#fff,font-size:16px
+    classDef externalStyle fill:#999999,stroke:#6B6B6B,color:#fff,font-size:16px
+    classDef containerStyle fill:#438DD5,stroke:#2E6295,color:#fff,font-size:14px
+    classDef databaseStyle fill:#438DD5,stroke:#2E6295,color:#fff,font-size:14px
+    classDef eventStyle fill:#FF6B35,stroke:#C54020,color:#fff,font-size:16px
+
+    class Client personStyle
+    class PaymentSystem,PartnerSystems,InsCompany externalStyle
+    class WebApp,ClientInfo,CoreApp,InsProductAgg,InsCompSettle containerStyle
+    class CoreDB,InsProductDB,InsSettleDB databaseStyle
+    class Kafka eventStyle

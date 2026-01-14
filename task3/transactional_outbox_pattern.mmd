@@ -1,0 +1,45 @@
+graph TB
+    subgraph Service["Сервис (core-app или ins-product-aggregator)"]
+        App["Приложение"]
+        DB["PostgreSQL"]
+        OutboxTable["Outbox таблица"]
+        Relay["Message Relay<br/>(Polling Publisher)"]
+    end
+    
+    subgraph Broker["Event Broker"]
+        Kafka["Apache Kafka<br/><br/>Topics:<br/>• insurance-products<br/>• insurance-policies"]
+    end
+    
+    subgraph Consumers["Потребители"]
+        Consumer1["core-app<br/>(читает products)"]
+        Consumer2["ins-comp-settlement<br/>(читает products & policies)"]
+    end
+    
+    %% Transaction Flow
+    App -->|"1. BEGIN TRANSACTION"| DB
+    App -->|"2. UPDATE business_data"| DB
+    App -->|"3. INSERT INTO outbox"| OutboxTable
+    DB -->|"4. COMMIT"| DB
+    
+    %% Relay Flow
+    OutboxTable -->|"5. SELECT * WHERE status='PENDING'"| Relay
+    Relay -->|"6. Publish events"| Kafka
+    Relay -->|"7. UPDATE status='SENT'"| OutboxTable
+    
+    %% Consumer Flow
+    Kafka -->|"8. Subscribe & Consume"| Consumer1
+    Kafka -->|"8. Subscribe & Consume"| Consumer2
+    
+    Consumer1 -->|"9. Обновить локальную реплику"| Consumer1
+    Consumer2 -->|"9. Обновить локальную реплику"| Consumer2
+    
+    %% Styling
+    classDef appStyle fill:#438DD5,stroke:#2E6295,color:#fff,font-size:16px
+    classDef dbStyle fill:#5C9EC6,stroke:#2E6295,color:#fff,font-size:16px
+    classDef kafkaStyle fill:#FF6B35,stroke:#C54020,color:#fff,font-size:18px
+    classDef consumerStyle fill:#7CB342,stroke:#558B2F,color:#fff,font-size:16px
+    
+    class App,Relay appStyle
+    class DB,OutboxTable dbStyle
+    class Kafka kafkaStyle
+    class Consumer1,Consumer2 consumerStyle
