@@ -139,9 +139,166 @@ kubectl port-forward svc/prometheus-operator-kube-prom-prometheus 9090:9090
 kubectl get --raw /apis/custom.metrics.k8s.io/v1beta1
 ```
 
+## Альтернативные механизмы масштабирования
+
+### Vertical Pod Autoscaler (VPA)
+
+VPA автоматически корректирует requests и limits CPU/памяти для контейнеров на основе исторического использования ресурсов.
+
+#### Когда использовать VPA:
+- **Stateful приложения**: Базы данных, очереди сообщений
+- **Ресурсоёмкие задачи**: ML/AI обработка, рендеринг
+- **CronJobs**: Регулярные задачи с переменной нагрузкой
+- **Legacy приложения**: Не поддерживающие горизонтальное масштабирование
+
+#### Пример конфигурации VPA:
+```yaml
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: scalable-pod-identifier-vpa
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: scalable-pod-identifier
+  updatePolicy:
+    updateMode: "Auto"  # Также: "Off", "Initial"
+  resourcePolicy:
+    containerPolicies:
+    - containerName: scalable-pod-identifier
+      minAllowed:
+        memory: "50Mi"
+        cpu: "50m"
+      maxAllowed:
+        memory: "500Mi"
+        cpu: "500m"
+```
+
+#### Режимы работы VPA:
+- **Off**: Только рекомендации, без автоматического применения
+- **Initial**: Применяется только при создании пода
+- **Auto**: Автоматическое обновление (требует перезапуск пода)
+
+#### Сравнение HPA vs VPA:
+
+| Критерий | HPA | VPA |
+|----------|-----|-----|
+| **Тип масштабирования** | Горизонтальное (количество подов) | Вертикальное (ресурсы на под) |
+| **Скорость реакции** | Быстрая (секунды) | Медленная (минуты, требует перезапуск) |
+| **Подходит для** | Stateless приложения | Stateful приложения |
+| **Перезапуск подов** | Нет | Да (в режиме Auto) |
+| **Использование с другим** | ⚠️ Не использовать с VPA | ⚠️ Не использовать с HPA |
+
+#### ⚠️ Важно: 
+Не рекомендуется использовать HPA и VPA одновременно для одних и тех же метрик (CPU/Memory), так как они будут конкурировать друг с другом. Допустимо использовать HPA на кастомных метриках вместе с VPA на CPU/Memory.
+
+### KEDA (Kubernetes Event-Driven Autoscaler)
+
+KEDA расширяет возможности HPA, позволяя масштабировать приложения на основе событий из внешних источников.
+
+#### Преимущества KEDA:
+- **Масштабирование до нуля**: Может уменьшить количество реплик до 0 при отсутствии событий
+- **Широкий выбор scaler'ов**: 50+ встроенных интеграций (Kafka, RabbitMQ, Azure Queue, AWS SQS, Redis, Prometheus и др.)
+- **Event-driven**: Идеально для event-driven архитектур
+- **Упрощение**: Не требует Prometheus Adapter для внешних метрик
+
+#### Пример: Масштабирование на основе очереди RabbitMQ
+
+```yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: rabbitmq-consumer-scaler
+spec:
+  scaleTargetRef:
+    name: scalable-pod-identifier
+  minReplicaCount: 0   # Масштабирование до нуля!
+  maxReplicaCount: 30
+  pollingInterval: 30
+  cooldownPeriod: 300
+  triggers:
+  - type: rabbitmq
+    metadata:
+      queueName: tasks
+      queueLength: "20"  # Целевое количество сообщений на под
+      host: amqp://user:password@rabbitmq:5672
+```
+
+#### Пример: Масштабирование на основе Kafka lag
+
+```yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: kafka-consumer-scaler
+spec:
+  scaleTargetRef:
+    name: scalable-pod-identifier
+  minReplicaCount: 1
+  maxReplicaCount: 20
+  triggers:
+  - type: kafka
+    metadata:
+      bootstrapServers: kafka:9092
+      consumerGroup: my-group
+      topic: events
+      lagThreshold: "100"  # Максимальное отставание
+```
+
+#### Когда использовать KEDA:
+- ✅ Event-Driven архитектуры с очередями сообщений
+- ✅ Обработка асинхронных задач (workers)
+- ✅ Serverless функции в Kubernetes
+- ✅ Периодическая обработка с масштабированием до нуля
+- ✅ Интеграция с внешними метриками без сложной настройки
+
+#### Установка KEDA:
+```bash
+# Через Helm
+helm repo add kedacore https://kedacore.github.io/charts
+helm install keda kedacore/keda --namespace keda --create-namespace
+
+# Проверка
+kubectl get pods -n keda
+```
+
+### Рекомендации по выбору механизма
+
+| Сценарий | Рекомендуемый механизм |
+|----------|------------------------|
+| Stateless web-приложение (REST API) | **HPA** (CPU/Memory/RPS) |
+| Stateful база данных | **VPA** |
+| Event-driven обработка сообщений | **KEDA** + HPA |
+| ML/AI batch-обработка | **VPA** или KEDA (для CronJob) |
+| Serverless функции | **KEDA** (с scale to zero) |
+| Микросервисы с высокой нагрузкой | **HPA + Cluster Autoscaler** |
+
+### Комбинированное использование
+
+Для максимальной эффективности можно комбинировать механизмы:
+
+**1. HPA + Cluster Autoscaler** (текущее решение):
+- HPA масштабирует поды
+- Cluster Autoscaler добавляет узлы при нехватке ресурсов
+- ✅ Идеально для production web-приложений
+
+**2. KEDA + VPA** (для worker'ов):
+- KEDA масштабирует количество worker'ов по очереди
+- VPA оптимизирует ресурсы для каждого worker'а
+- ✅ Эффективно для обработки асинхронных задач
+
+**3. KEDA + Cluster Autoscaler** (для event-driven систем):
+- KEDA масштабирует на основе событий (включая до нуля)
+- Cluster Autoscaler управляет узлами
+- ✅ Максимальная экономия при переменной нагрузке
+
 ## Выводы
 
 1. HPA эффективно масштабирует приложение в ответ на изменение нагрузки
 2. Масштабирование по RPS быстрее (30-60 сек) и точнее, чем по памяти (2-3 мин)
 3. Оба подхода стабильно работают и возвращаются к минимальному количеству реплик при снижении нагрузки
 4. Для production-среды рекомендуется комбинированный подход с несколькими метриками
+5. **VPA** подходит для stateful приложений и ресурсоёмких задач
+6. **KEDA** идеален для event-driven архитектур и позволяет масштабировать до нуля
+7. Комбинирование механизмов (HPA + Cluster Autoscaler, KEDA + VPA) даёт максимальную гибкость

@@ -387,6 +387,406 @@ class OutboxMessageRelay(
 
 ---
 
+## Управление схемами событий (Schema Registry)
+
+### Проблема эволюции схем
+
+По мере развития системы структура событий может изменяться:
+- Добавление новых полей
+- Удаление устаревших полей
+- Изменение типов данных
+- Переименование полей
+
+**Без централизованного управления схемами:**
+- ❌ Несовместимость между producer и consumer
+- ❌ Сложность отслеживания версий событий
+- ❌ Runtime ошибки десериализации
+- ❌ Отсутствие валидации на этапе разработки
+
+### Решение: Confluent Schema Registry
+
+**Schema Registry** — это централизованный реестр схем для хранения и управления схемами событий в Kafka.
+
+#### Преимущества использования Schema Registry:
+
+1. **Централизованное управление схемами**
+   - Все схемы событий хранятся в одном месте
+   - Единая точка истины для структуры событий
+
+2. **Контроль совместимости**
+   - Автоматическая проверка совместимости при обновлении схем
+   - Предотвращение breaking changes
+
+3. **Версионирование**
+   - Каждое изменение схемы создает новую версию
+   - История всех изменений сохраняется
+
+4. **Валидация**
+   - Producer автоматически валидирует события перед отправкой
+   - Consumer проверяет соответствие схеме при чтении
+
+5. **Оптимизация**
+   - Схемы не передаются в каждом событии (только ID схемы)
+   - Снижение размера сообщений на 30-50%
+
+#### Архитектура с Schema Registry
+
+```
+┌──────────────────┐          ┌──────────────────┐
+│   Producer       │          │   Consumer       │
+│   (core-app)     │          │  (settlement)    │
+└────────┬─────────┘          └────────┬─────────┘
+         │                             │
+         │ 1. Register schema          │ 3. Get schema
+         │ 2. Validate & send          │ 4. Validate & read
+         │                             │
+         ↓                             ↓
+    ┌────────────────────────────────────────┐
+    │      Schema Registry (Confluent)       │
+    │  - Хранение всех версий схем           │
+    │  - Проверка совместимости              │
+    │  - Выдача схем по ID                   │
+    └────────────────┬───────────────────────┘
+                     │
+         ┌───────────┴────────────┐
+         ↓                        ↓
+    ┌─────────┐            ┌─────────┐
+    │  Kafka  │            │  Kafka  │
+    │ Topic 1 │            │ Topic 2 │
+    └─────────┘            └─────────┘
+```
+
+### Примеры JSON Schema для событий InsureTech
+
+#### ProductCreatedEvent.json
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProductCreatedEvent",
+  "description": "Событие создания нового страхового продукта",
+  "type": "object",
+  "required": ["eventId", "eventType", "eventTime", "aggregateId", "version", "data"],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Уникальный идентификатор события"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "ProductCreated",
+      "description": "Тип события"
+    },
+    "eventTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Время возникновения события (ISO 8601)"
+    },
+    "aggregateId": {
+      "type": "string",
+      "description": "Идентификатор страхового продукта"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Версия схемы события"
+    },
+    "data": {
+      "type": "object",
+      "required": ["productId", "insuranceCompanyId", "productType", "name", "active"],
+      "properties": {
+        "productId": {
+          "type": "string",
+          "description": "Идентификатор продукта"
+        },
+        "insuranceCompanyId": {
+          "type": "string",
+          "description": "Идентификатор страховой компании"
+        },
+        "insuranceCompanyName": {
+          "type": "string",
+          "description": "Название страховой компании"
+        },
+        "productType": {
+          "type": "string",
+          "enum": ["LIFE_INSURANCE", "HEALTH_INSURANCE", "CAR_INSURANCE", "PROPERTY_INSURANCE"],
+          "description": "Тип страхового продукта"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200,
+          "description": "Название продукта"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Описание продукта"
+        },
+        "minCoverage": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Минимальная сумма покрытия"
+        },
+        "maxCoverage": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Максимальная сумма покрытия"
+        },
+        "basePremium": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Базовая премия"
+        },
+        "conditions": {
+          "type": "object",
+          "properties": {
+            "minAge": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 120
+            },
+            "maxAge": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 120
+            },
+            "medicalExamRequired": {
+              "type": "boolean"
+            }
+          }
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Активен ли продукт"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Дата и время создания"
+        }
+      }
+    }
+  }
+}
+```
+
+#### PolicyCreatedEvent.json
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PolicyCreatedEvent",
+  "description": "Событие оформления новой страховки",
+  "type": "object",
+  "required": ["eventId", "eventType", "eventTime", "aggregateId", "version", "data"],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "type": "string",
+      "const": "PolicyCreated"
+    },
+    "eventTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "aggregateId": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "data": {
+      "type": "object",
+      "required": ["policyId", "clientId", "productId", "coverage", "premium", "status"],
+      "properties": {
+        "policyId": {
+          "type": "string"
+        },
+        "policyNumber": {
+          "type": "string",
+          "pattern": "^INS-[0-9]{4}-[0-9]{5,}$"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "clientName": {
+          "type": "string"
+        },
+        "productId": {
+          "type": "string"
+        },
+        "productName": {
+          "type": "string"
+        },
+        "insuranceCompanyId": {
+          "type": "string"
+        },
+        "insuranceCompanyName": {
+          "type": "string"
+        },
+        "coverage": {
+          "type": "number",
+          "minimum": 0
+        },
+        "premium": {
+          "type": "number",
+          "minimum": 0
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["DRAFT", "ACTIVE", "SUSPENDED", "EXPIRED", "CANCELLED"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}
+```
+
+### Стратегии совместимости
+
+Schema Registry поддерживает различные стратегии проверки совместимости:
+
+#### 1. BACKWARD (рекомендуется для большинства случаев)
+- Consumer с новой схемой может читать события со старой схемой
+- Можно **удалять** поля (с default значениями)
+- Можно **добавлять** optional поля
+- ✅ Подходит для InsureTech: позволяет добавлять новые поля без остановки consumer'ов
+
+#### 2. FORWARD
+- Consumer со старой схемой может читать события с новой схемой
+- Можно **добавлять** поля
+- Можно **удалять** optional поля
+
+#### 3. FULL (BACKWARD + FORWARD)
+- Наиболее строгая совместимость
+- Можно только добавлять/удалять optional поля с default значениями
+
+#### 4. NONE
+- Без проверки совместимости
+- ⚠️ Не рекомендуется для production
+
+### Пример эволюции схемы события
+
+**Версия 1 (исходная):**
+```json
+{
+  "productId": "product-123",
+  "name": "Страхование жизни",
+  "premium": 15000
+}
+```
+
+**Версия 2 (добавлено поле discountPercent):**
+```json
+{
+  "productId": "product-123",
+  "name": "Страхование жизни",
+  "premium": 15000,
+  "discountPercent": 5  // Новое optional поле
+}
+```
+
+**Версия 3 (поле premium переименовано в basePremium):**
+```json
+{
+  "productId": "product-123",
+  "name": "Страхование жизни",
+  "basePremium": 15000,  // Переименовано
+  "discountPercent": 5
+}
+```
+
+⚠️ **Версия 3 несовместима** с версиями 1 и 2! Переименование поля = breaking change.
+
+**Правильный подход для версии 3:**
+```json
+{
+  "productId": "product-123",
+  "name": "Страхование жизни",
+  "premium": 15000,        // Deprecated, но оставлено для совместимости
+  "basePremium": 15000,    // Новое поле
+  "discountPercent": 5
+}
+```
+
+### Внедрение Schema Registry для InsureTech
+
+#### Этап 1: Установка Schema Registry
+```bash
+# Через Docker Compose
+docker-compose up -d schema-registry
+
+# Проверка
+curl http://localhost:8081/subjects
+```
+
+#### Этап 2: Регистрация схем
+```bash
+# Регистрация схемы для топика insurance-products
+curl -X POST -H "Content-Type: application/vnd.schemaregistry.v1+json" \
+  --data '{"schema": "..."}' \
+  http://localhost:8081/subjects/insurance-products-value/versions
+```
+
+#### Этап 3: Настройка Producer (ins-product-aggregator)
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation("io.confluent:kafka-avro-serializer:7.5.0")
+}
+
+// application.yml
+spring:
+  kafka:
+    producer:
+      value-serializer: io.confluent.kafka.serializers.KafkaJsonSchemaSerializer
+      properties:
+        schema.registry.url: http://schema-registry:8081
+        auto.register.schemas: false  // Схемы регистрируются вручную
+        use.latest.version: true
+```
+
+#### Этап 4: Настройка Consumer (core-app, ins-comp-settlement)
+```kotlin
+// application.yml
+spring:
+  kafka:
+    consumer:
+      value-deserializer: io.confluent.kafka.serializers.KafkaJsonSchemaDeserializer
+      properties:
+        schema.registry.url: http://schema-registry:8081
+        specific.json.value.type: com.insuretech.events.ProductEvent
+```
+
+### Рекомендации для InsureTech
+
+1. **Использовать BACKWARD совместимость** как стратегию по умолчанию
+2. **Версионировать схемы**: ProductCreatedEvent v1, v2, v3...
+3. **Документировать изменения**: Changelog для каждой версии схемы
+4. **Тестировать совместимость**: Автотесты для проверки десериализации старых событий
+5. **Не удалять схемы**: Даже устаревшие версии могут понадобиться для восстановления данных
+6. **Мониторить Schema Registry**: Алерты на ошибки регистрации/валидации
+
+---
+
 ## Обработка событий потребителями
 
 ### Пример: core-app обрабатывает события о продуктах
