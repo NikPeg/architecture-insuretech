@@ -1,0 +1,6 @@
+NAME                                 REFERENCE                            TARGETS            MINPODS   MAXPODS   REPLICAS   AGE
+scalable-pod-identifier-hpa-memory   Deployment/scalable-pod-identifier   memory: 122%/80%   1         10        7          19m
+
+# Примечание: Этот статус был зафиксирован во время активной нагрузки
+# TARGETS: 122%/80% - утилизация памяти превысила целевое значение на 52%
+# REPLICAS: 7 - система масштабировалась с 1 до 7 реплик

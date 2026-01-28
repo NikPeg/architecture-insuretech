@@ -1,0 +1,11 @@
+NAME                                       READY   STATUS    RESTARTS   AGE     IP            NODE       NOMINATED NODE   READINESS GATES
+scalable-pod-identifier-667fd569ff-2m8d2   1/1     Running   0          75m     10.244.0.31   minikube   <none>           <none>
+scalable-pod-identifier-667fd569ff-cvc7s   1/1     Running   0          77m     10.244.0.27   minikube   <none>           <none>
+scalable-pod-identifier-667fd569ff-dcwbr   1/1     Running   0          78m     10.244.0.24   minikube   <none>           <none>
+scalable-pod-identifier-667fd569ff-dfdxf   1/1     Running   0          76m     10.244.0.28   minikube   <none>           <none>
+scalable-pod-identifier-667fd569ff-kftrs   1/1     Running   0          75m     10.244.0.33   minikube   <none>           <none>
+scalable-pod-identifier-667fd569ff-m9676   1/1     Running   0          76m     10.244.0.29   minikube   <none>           <none>
+scalable-pod-identifier-667fd569ff-pgqgw   1/1     Running   0          9m51s   10.244.0.44   minikube   <none>           <none>
+scalable-pod-identifier-667fd569ff-r4hc9   1/1     Running   0          77m     10.244.0.26   minikube   <none>           <none>
+scalable-pod-identifier-667fd569ff-sdrsd   1/1     Running   0          9m51s   10.244.0.45   minikube   <none>           <none>
+scalable-pod-identifier-667fd569ff-vbvl6   1/1     Running   0          76m     10.244.0.30   minikube   <none>           <none>

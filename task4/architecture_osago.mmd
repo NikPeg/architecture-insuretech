@@ -1,0 +1,120 @@
+graph TB
+    %% External Systems and Users
+    Client[("Клиент<br/>создаёт заявку ОСАГО")]
+    PaymentSystem["Платёжный сервис"]
+    PartnerSystems["Системы партнёров"]
+    
+    %% Insurance Companies with Circuit Breaker
+    subgraph InsuranceCompanies["Страховые компании (REST API)"]
+        InsComp1["Страховая №1"]
+        InsComp2["Страховая №2"]
+        InsComp3["Страховая №3"]
+        InsComp4["Страховая №4"]
+        InsComp5["Страховая №5"]
+    end
+
+    %% Frontend Layer
+    subgraph Frontend["Frontend"]
+        WebApp["InsureTech Web<br/>JavaScript, React<br/><br/>WebSocket Client"]
+    end
+
+    %% API Gateway with Rate Limiting
+    subgraph Gateway["API Gateway / Load Balancer"]
+        APIGateway["API Gateway<br/><br/>⏱️ Rate Limiter<br/>2500 одновременных<br/>соединений"]
+    end
+
+    %% Core Services Layer
+    subgraph CoreServices["Core Services"]
+        ClientInfo["client-info<br/>Kotlin, SpringBoot<br/>Управление клиентами"]
+        
+        CoreApp["core-app<br/>Kotlin, SpringBoot<br/>Бизнес-логика ОСАГО<br/><br/>WebSocket Server<br/>Локальная реплика продуктов"]
+        
+        OsagoAgg["osago-aggregator<br/>Kotlin, SpringBoot<br/><br/>🔄 Retry (3 попытки)<br/>⏱️ Timeout (60 сек)<br/>🔒 Circuit Breaker<br/>🏗️ Bulkhead (изоляция пулов)<br/><br/>Параллельные запросы<br/>к страховым компаниям"]
+        
+        InsProductAgg["ins-product-aggregator<br/>Kotlin, SpringBoot<br/>Агрегация продуктов<br/><br/>Publisher событий"]
+        
+        InsCompSettle["ins-comp-settlement<br/>Kotlin, SpringBoot<br/>Взаиморасчёты<br/><br/>Локальные реплики"]
+    end
+
+    %% Event Streaming Platform
+    subgraph EventPlatform["Event Streaming"]
+        Kafka["Apache Kafka<br/>Event Broker<br/><br/>Topics:<br/>insurance-products<br/>insurance-policies<br/>client-data<br/>osago-applications"]
+    end
+
+    %% Data Layer
+    subgraph DataLayer["Data Layer"]
+        CoreDB["core-db<br/>PostgreSQL<br/>+ Outbox таблица"]
+        
+        OsagoDB["osago-aggregator-db<br/>PostgreSQL<br/><br/>Таблицы:<br/>- applications<br/>- offers<br/>- outbox"]
+        
+        InsProductDB["ins-product-agg-db<br/>PostgreSQL<br/>+ Outbox таблица"]
+        
+        InsSettleDB["ins-comp-settlement-db<br/>PostgreSQL"]
+    end
+
+    %% User interactions with Rate Limiting
+    Client -->|HTTPS| APIGateway
+    APIGateway -->|⏱️ Rate Limited<br/>WebSocket| WebApp
+    
+    %% Frontend to Backend - WebSocket for real-time
+    WebApp <-->|WebSocket<br/>Real-time обновления<br/>предложений ОСАГО| CoreApp
+    WebApp -->|REST<br/>CRUD операции| ClientInfo
+    WebApp -->|REST<br/>Другие операции| CoreApp
+    
+    %% External integrations
+    PartnerSystems -->|REST API| CoreApp
+    CoreApp -->|REST| PaymentSystem
+    
+    %% Core-app to osago-aggregator - WebSocket for streaming results
+    CoreApp <-->|WebSocket<br/>Создание заявки<br/>+ Stream предложений| OsagoAgg
+    
+    %% osago-aggregator to Insurance Companies with resilience patterns
+    OsagoAgg -->|REST + 🔄 Retry<br/>⏱️ Timeout 60s<br/>🔒 Circuit Breaker| InsComp1
+    OsagoAgg -->|REST + 🔄 Retry<br/>⏱️ Timeout 60s<br/>🔒 Circuit Breaker| InsComp2
+    OsagoAgg -->|REST + 🔄 Retry<br/>⏱️ Timeout 60s<br/>🔒 Circuit Breaker| InsComp3
+    OsagoAgg -->|REST + 🔄 Retry<br/>⏱️ Timeout 60s<br/>🔒 Circuit Breaker| InsComp4
+    OsagoAgg -->|REST + 🔄 Retry<br/>⏱️ Timeout 60s<br/>🔒 Circuit Breaker| InsComp5
+    
+    %% Event-Driven interactions
+    InsProductAgg -->|Publish Events<br/>ProductUpdated<br/>ProductCreated| Kafka
+    
+    CoreApp -->|Publish Events<br/>PolicyCreated<br/>PolicyUpdated| Kafka
+    
+    OsagoAgg -->|Publish Events<br/>OsagoApplicationCreated<br/>OsagoOfferReceived| Kafka
+    
+    ClientInfo -->|Publish Events<br/>ClientCreated<br/>ClientUpdated| Kafka
+    
+    Kafka -->|Subscribe<br/>Product events| CoreApp
+    
+    Kafka -->|Subscribe<br/>Product & Policy events| InsCompSettle
+    
+    Kafka -->|Subscribe<br/>OSAGO events| InsCompSettle
+    
+    %% Async external calls
+    InsProductAgg -.->|SOAP/REST<br/>Периодически| InsuranceCompanies
+    
+    InsCompSettle -.->|REST<br/>Реестр раз в месяц| InsuranceCompanies
+    
+    %% Database connections
+    ClientInfo -->|JDBC| CoreDB
+    CoreApp -->|JDBC<br/>Transactional Outbox| CoreDB
+    OsagoAgg -->|JDBC<br/>Transactional Outbox| OsagoDB
+    InsProductAgg -->|JDBC<br/>Transactional Outbox| InsProductDB
+    InsCompSettle -->|JDBC| InsSettleDB
+
+    %% Styling
+    classDef personStyle fill:#08427B,stroke:#052E56,color:#fff,font-size:16px
+    classDef externalStyle fill:#999999,stroke:#6B6B6B,color:#fff,font-size:16px
+    classDef containerStyle fill:#438DD5,stroke:#2E6295,color:#fff,font-size:14px
+    classDef databaseStyle fill:#438DD5,stroke:#2E6295,color:#fff,font-size:14px
+    classDef eventStyle fill:#FF6B35,stroke:#C54020,color:#fff,font-size:16px
+    classDef gatewayStyle fill:#00A86B,stroke:#007A4D,color:#fff,font-size:16px
+    classDef insuranceStyle fill:#FFB84D,stroke:#E69500,color:#fff,font-size:14px
+
+    class Client personStyle
+    class PaymentSystem,PartnerSystems externalStyle
+    class WebApp,ClientInfo,CoreApp,OsagoAgg,InsProductAgg,InsCompSettle containerStyle
+    class CoreDB,OsagoDB,InsProductDB,InsSettleDB databaseStyle
+    class Kafka eventStyle
+    class APIGateway gatewayStyle
+    class InsComp1,InsComp2,InsComp3,InsComp4,InsComp5 insuranceStyle

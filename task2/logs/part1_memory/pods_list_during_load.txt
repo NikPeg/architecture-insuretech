@@ -1,0 +1,12 @@
+NAME                                       READY   STATUS    RESTARTS   AGE
+scalable-pod-identifier-667fd569ff-9qb9k   1/1     Running   0          2m21s
+scalable-pod-identifier-667fd569ff-cvc7s   1/1     Running   0          81s
+scalable-pod-identifier-667fd569ff-dcwbr   1/1     Running   0          3m6s
+scalable-pod-identifier-667fd569ff-dfdxf   1/1     Running   0          21s
+scalable-pod-identifier-667fd569ff-m9676   1/1     Running   0          21s
+scalable-pod-identifier-667fd569ff-r4hc9   1/1     Running   0          81s
+scalable-pod-identifier-667fd569ff-vbvl6   1/1     Running   0          21s
+
+# Примечание: 7 подов в статусе Running
+# Видно постепенное создание подов: от 3м6с до 21с назад
+# Самый старый под (dcwbr) - изначальный, остальные созданы HPA

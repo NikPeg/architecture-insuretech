@@ -1,0 +1,220 @@
+graph TB
+    subgraph Internet["🌐 Internet"]
+        User["👤 Пользователь<br/>Браузер"]
+        Partner["🏢 B2B Партнер<br/>API Client"]
+    end
+
+    subgraph GSLB_Layer["Global Load Balancing Layer"]
+        GSLB["🌍 GSLB<br/>Global Server Load Balancer<br/>━━━━━━━━━━━━━━<br/>DNS-based routing<br/>Geographic distribution<br/>Health check: 10s"]
+    end
+
+    subgraph DC1["🏢 Зона доступности 1 - Москва"]
+        subgraph LB1["Load Balancer"]
+            ALB1["⚖️ ALB<br/>L7 Load Balancer<br/>━━━━━━━━━━━━━━<br/>SSL/TLS termination<br/>Health check: 5s"]
+        end
+
+        subgraph K8S1["☸️ Kubernetes Cluster 1"]
+            subgraph Masters1["Control Plane"]
+                M1_1["Master 1"]
+                M1_2["Master 2"]
+                M1_3["Master 3"]
+            end
+
+            subgraph Ingress1["Ingress Layer"]
+                ING1["🔀 NGINX Ingress<br/>━━━━━━━━━━━━━━<br/>Rate limiting<br/>Routing"]
+            end
+
+            subgraph NS1["InsureTech Namespace"]
+                subgraph Apps1["Applications"]
+                    CORE1["📦 core-app<br/>━━━━━━━━━━━━━━<br/>Min: 3 pods<br/>Max: 20 pods<br/>HPA enabled"]
+                    CLIENT1["📦 client-info<br/>━━━━━━━━━━━━━━<br/>Min: 3 pods<br/>Max: 20 pods<br/>HPA enabled"]
+                    AGG1["📦 ins-product-aggregator<br/>━━━━━━━━━━━━━━<br/>Min: 3 pods<br/>Max: 20 pods<br/>HPA enabled"]
+                    SETTLE1["📦 ins-comp-settlement<br/>━━━━━━━━━━━━━━<br/>Min: 2 pods<br/>Max: 10 pods<br/>HPA enabled"]
+                end
+            end
+
+            subgraph Workers1["Worker Nodes"]
+                W1_1["Worker 1"]
+                W1_2["Worker 2"]
+                W1_3["Worker 3"]
+                W1_N["..."]
+                W1_15["Worker 15"]
+            end
+        end
+
+        subgraph DB1["Database Cluster"]
+            HAPROXY1["🔀 HAProxy<br/>DB Load Balancer"]
+            PG_M1["🗄️ PostgreSQL Master<br/>+ Patroni<br/>━━━━━━━━━━━━━━<br/>Read/Write"]
+            PG_R1_1["🗄️ PostgreSQL Replica 1<br/>+ Patroni<br/>━━━━━━━━━━━━━━<br/>Read only"]
+            PG_R1_2["🗄️ PostgreSQL Replica 2<br/>+ Patroni<br/>━━━━━━━━━━━━━━<br/>Read only"]
+        end
+
+        subgraph Support1["Supporting Services"]
+            ETCD1["🔧 etcd Cluster<br/>3 nodes"]
+            MON1["📊 Monitoring<br/>Prometheus<br/>Grafana"]
+        end
+    end
+
+    subgraph DC2["🏢 Зона доступности 2 - СПб/Регион"]
+        subgraph LB2["Load Balancer"]
+            ALB2["⚖️ ALB<br/>L7 Load Balancer<br/>━━━━━━━━━━━━━━<br/>SSL/TLS termination<br/>Health check: 5s"]
+        end
+
+        subgraph K8S2["☸️ Kubernetes Cluster 2"]
+            subgraph Masters2["Control Plane"]
+                M2_1["Master 1"]
+                M2_2["Master 2"]
+                M2_3["Master 3"]
+            end
+
+            subgraph Ingress2["Ingress Layer"]
+                ING2["🔀 NGINX Ingress<br/>━━━━━━━━━━━━━━<br/>Rate limiting<br/>Routing"]
+            end
+
+            subgraph NS2["InsureTech Namespace"]
+                subgraph Apps2["Applications"]
+                    CORE2["📦 core-app<br/>━━━━━━━━━━━━━━<br/>Min: 3 pods<br/>Max: 20 pods<br/>HPA enabled"]
+                    CLIENT2["📦 client-info<br/>━━━━━━━━━━━━━━<br/>Min: 3 pods<br/>Max: 20 pods<br/>HPA enabled"]
+                    AGG2["📦 ins-product-aggregator<br/>━━━━━━━━━━━━━━<br/>Min: 3 pods<br/>Max: 20 pods<br/>HPA enabled"]
+                    SETTLE2["📦 ins-comp-settlement<br/>━━━━━━━━━━━━━━<br/>Min: 2 pods<br/>Max: 10 pods<br/>HPA enabled"]
+                end
+            end
+
+            subgraph Workers2["Worker Nodes"]
+                W2_1["Worker 1"]
+                W2_2["Worker 2"]
+                W2_3["Worker 3"]
+                W2_N["..."]
+                W2_15["Worker 15"]
+            end
+        end
+
+        subgraph DB2["Database Cluster"]
+            HAPROXY2["🔀 HAProxy<br/>DB Load Balancer"]
+            PG_M2["🗄️ PostgreSQL Master<br/>+ Patroni<br/>━━━━━━━━━━━━━━<br/>Read/Write"]
+            PG_R2_1["🗄️ PostgreSQL Replica 1<br/>+ Patroni<br/>━━━━━━━━━━━━━━<br/>Read only"]
+            PG_R2_2["🗄️ PostgreSQL Replica 2<br/>+ Patroni<br/>━━━━━━━━━━━━━━<br/>Read only"]
+        end
+
+        subgraph Support2["Supporting Services"]
+            ETCD2["🔧 etcd Cluster<br/>3 nodes"]
+            MON2["📊 Monitoring<br/>Prometheus<br/>Grafana"]
+        end
+    end
+
+    subgraph Global["🌐 Global Services"]
+        S3_1["💾 S3 Storage<br/>Backup<br/>Region 1"]
+        S3_2["💾 S3 Storage<br/>Backup<br/>Region 2"]
+        DNS["🌐 DNS<br/>Domain Management"]
+        CentralMon["📊 Central Monitoring<br/>Grafana<br/>Alertmanager"]
+    end
+
+    subgraph External["🏢 External Systems"]
+        Insurance1["🏢 Страховая<br/>компания 1"]
+        Insurance2["🏢 Страховая<br/>компания 2"]
+        Insurance3["🏢 Страховая<br/>компания 3"]
+        Insurance4["🏢 Страховая<br/>компания 4"]
+        Insurance5["🏢 Страховая<br/>компания 5"]
+        Payment["💳 Платежный<br/>сервис"]
+    end
+
+    %% User connections
+    User -->|HTTPS| GSLB
+    Partner -->|HTTPS API| GSLB
+
+    %% GSLB routing
+    GSLB -->|"Health check<br/>Geographic routing"| ALB1
+    GSLB -->|"Health check<br/>Geographic routing"| ALB2
+
+    %% DC1 connections
+    ALB1 -->|Health check| ING1
+    ING1 -->|Route| CORE1
+    ING1 -->|Route| CLIENT1
+    ING1 -->|Route| AGG1
+    ING1 -->|Route| SETTLE1
+
+    CORE1 -->|TCP| HAPROXY1
+    CLIENT1 -->|TCP| HAPROXY1
+    AGG1 -->|TCP| HAPROXY1
+    SETTLE1 -->|TCP| HAPROXY1
+
+    HAPROXY1 -->|Write| PG_M1
+    HAPROXY1 -->|Read| PG_R1_1
+    HAPROXY1 -->|Read| PG_R1_2
+
+    PG_M1 -->|Async replication| PG_R1_1
+    PG_M1 -->|Async replication| PG_R1_2
+
+    ETCD1 -.->|Manage| PG_M1
+    ETCD1 -.->|Manage| PG_R1_1
+    ETCD1 -.->|Manage| PG_R1_2
+
+    %% DC2 connections
+    ALB2 -->|Health check| ING2
+    ING2 -->|Route| CORE2
+    ING2 -->|Route| CLIENT2
+    ING2 -->|Route| AGG2
+    ING2 -->|Route| SETTLE2
+
+    CORE2 -->|TCP| HAPROXY2
+    CLIENT2 -->|TCP| HAPROXY2
+    AGG2 -->|TCP| HAPROXY2
+    SETTLE2 -->|TCP| HAPROXY2
+
+    HAPROXY2 -->|Write| PG_M2
+    HAPROXY2 -->|Read| PG_R2_1
+    HAPROXY2 -->|Read| PG_R2_2
+
+    PG_M2 -->|Async replication| PG_R2_1
+    PG_M2 -->|Async replication| PG_R2_2
+
+    ETCD2 -.->|Manage| PG_M2
+    ETCD2 -.->|Manage| PG_R2_1
+    ETCD2 -.->|Manage| PG_R2_2
+
+    %% Cross-DC DB replication
+    PG_M1 <-->|"Sync streaming<br/>replication<br/>━━━━━━━━━━━━━━<br/>VPN tunnel"| PG_M2
+
+    %% Backup connections
+    PG_M1 -.->|"Backup every 15min<br/>pgBackRest"| S3_1
+    PG_M2 -.->|"Backup every 15min<br/>pgBackRest"| S3_2
+    S3_1 <-.->|Replication| S3_2
+
+    %% Monitoring
+    MON1 -.->|Metrics| CentralMon
+    MON2 -.->|Metrics| CentralMon
+
+    %% External integrations
+    AGG1 -->|SOAP/REST| Insurance1
+    AGG1 -->|SOAP/REST| Insurance2
+    AGG1 -->|SOAP/REST| Insurance3
+    AGG1 -->|SOAP/REST| Insurance4
+    AGG1 -->|SOAP/REST| Insurance5
+    
+    AGG2 -->|SOAP/REST| Insurance1
+    AGG2 -->|SOAP/REST| Insurance2
+    AGG2 -->|SOAP/REST| Insurance3
+    AGG2 -->|SOAP/REST| Insurance4
+    AGG2 -->|SOAP/REST| Insurance5
+
+    CORE1 -->|REST| Payment
+    CORE2 -->|REST| Payment
+
+    %% DNS management
+    DNS -.->|Manage| GSLB
+
+    %% Styling
+    classDef dcStyle fill:#e1f5ff,stroke:#0066cc,stroke-width:3px
+    classDef k8sStyle fill:#326ce5,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef dbStyle fill:#336791,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef lbStyle fill:#ff9900,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef appStyle fill:#4caf50,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef externalStyle fill:#999999,stroke:#333333,stroke-width:2px,color:#ffffff
+    classDef globalStyle fill:#9c27b0,stroke:#ffffff,stroke-width:2px,color:#ffffff
+
+    class DC1,DC2 dcStyle
+    class ALB1,ALB2,GSLB,ING1,ING2,HAPROXY1,HAPROXY2 lbStyle
+    class PG_M1,PG_M2,PG_R1_1,PG_R1_2,PG_R2_1,PG_R2_2 dbStyle
+    class CORE1,CORE2,CLIENT1,CLIENT2,AGG1,AGG2,SETTLE1,SETTLE2 appStyle
+    class Insurance1,Insurance2,Insurance3,Insurance4,Insurance5,Payment externalStyle
+    class S3_1,S3_2,DNS,CentralMon globalStyle

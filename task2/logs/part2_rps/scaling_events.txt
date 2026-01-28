@@ -1,0 +1,18 @@
+11m         Normal    Killing             pod/scalable-pod-identifier-667fd569ff-2cn7p              Stopping container scalable-pod-identifier
+11m         Normal    ScalingReplicaSet   deployment/scalable-pod-identifier                        Scaled down replica set scalable-pod-identifier-667fd569ff from 10 to 8
+11m         Normal    Killing             pod/scalable-pod-identifier-667fd569ff-9qb9k              Stopping container scalable-pod-identifier
+11m         Normal    SuccessfulRescale   horizontalpodautoscaler/scalable-pod-identifier-hpa-rps   New size: 8; reason: All metrics below target
+11m         Normal    SuccessfulDelete    replicaset/scalable-pod-identifier-667fd569ff             Deleted pod: scalable-pod-identifier-667fd569ff-9qb9k
+11m         Normal    SuccessfulDelete    replicaset/scalable-pod-identifier-667fd569ff             Deleted pod: scalable-pod-identifier-667fd569ff-2cn7p
+10m         Normal    SuccessfulCreate    replicaset/scalable-pod-identifier-667fd569ff             Created pod: scalable-pod-identifier-667fd569ff-sdrsd
+10m         Normal    ScalingReplicaSet   deployment/scalable-pod-identifier                        Scaled up replica set scalable-pod-identifier-667fd569ff from 8 to 10
+10m         Normal    Scheduled           pod/scalable-pod-identifier-667fd569ff-pgqgw              Successfully assigned default/scalable-pod-identifier-667fd569ff-pgqgw to minikube
+10m         Normal    SuccessfulRescale   horizontalpodautoscaler/scalable-pod-identifier-hpa-rps   New size: 10; reason: pods metric http_requests_per_second above target
+10m         Normal    Scheduled           pod/scalable-pod-identifier-667fd569ff-sdrsd              Successfully assigned default/scalable-pod-identifier-667fd569ff-sdrsd to minikube
+10m         Normal    SuccessfulCreate    replicaset/scalable-pod-identifier-667fd569ff             Created pod: scalable-pod-identifier-667fd569ff-pgqgw
+9m59s       Normal    Pulled              pod/scalable-pod-identifier-667fd569ff-pgqgw              Container image "scalable-pod-identifier:v1" already present on machine
+9m59s       Normal    Created             pod/scalable-pod-identifier-667fd569ff-pgqgw              Created container: scalable-pod-identifier
+9m59s       Normal    Started             pod/scalable-pod-identifier-667fd569ff-pgqgw              Started container scalable-pod-identifier
+9m59s       Normal    Started             pod/scalable-pod-identifier-667fd569ff-sdrsd              Started container scalable-pod-identifier
+9m59s       Normal    Created             pod/scalable-pod-identifier-667fd569ff-sdrsd              Created container: scalable-pod-identifier
+9m59s       Normal    Pulled              pod/scalable-pod-identifier-667fd569ff-sdrsd              Container image "scalable-pod-identifier:v1" already present on machine

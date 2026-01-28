@@ -1,0 +1,2 @@
+NAME                              REFERENCE                            TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+scalable-pod-identifier-hpa-rps   Deployment/scalable-pod-identifier   0/10      1         10        10         12m

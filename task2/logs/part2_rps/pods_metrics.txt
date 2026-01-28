@@ -1,0 +1,11 @@
+NAME                                       CPU(cores)   MEMORY(bytes)   
+scalable-pod-identifier-667fd569ff-2m8d2   1m           21Mi            
+scalable-pod-identifier-667fd569ff-cvc7s   1m           21Mi            
+scalable-pod-identifier-667fd569ff-dcwbr   1m           24Mi            
+scalable-pod-identifier-667fd569ff-dfdxf   1m           21Mi            
+scalable-pod-identifier-667fd569ff-kftrs   1m           21Mi            
+scalable-pod-identifier-667fd569ff-m9676   1m           21Mi            
+scalable-pod-identifier-667fd569ff-pgqgw   1m           21Mi            
+scalable-pod-identifier-667fd569ff-r4hc9   1m           21Mi            
+scalable-pod-identifier-667fd569ff-sdrsd   1m           21Mi            
+scalable-pod-identifier-667fd569ff-vbvl6   1m           21Mi            

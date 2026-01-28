@@ -1,0 +1,26 @@
+{
+    "status": "success",
+    "data": {
+        "resultType": "vector",
+        "result": [
+            {
+                "metric": {
+                    "__name__": "http_requests_total",
+                    "container": "scalable-pod-identifier",
+                    "endpoint": "http",
+                    "exported_endpoint": "/",
+                    "instance": "10.244.0.24:8080",
+                    "job": "scalable-pod-identifier-service",
+                    "method": "GET",
+                    "namespace": "default",
+                    "pod": "scalable-pod-identifier-667fd569ff-dcwbr",
+                    "service": "scalable-pod-identifier-service"
+                },
+                "value": [
+                    1768401607.735,
+                    "39211"
+                ]
+            }
+        ]
+    }
+}

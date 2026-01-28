@@ -1,0 +1,40 @@
+2m24s       Normal    SuccessfulRescale   horizontalpodautoscaler/scalable-pod-identifier-hpa-memory   New size: 2; reason: memory resource utilization (percentage of request) above target
+2m24s       Normal    ScalingReplicaSet   deployment/scalable-pod-identifier                        Scaled up replica set scalable-pod-identifier-667fd569ff from 1 to 2
+2m23s       Normal    SuccessfulCreate    replicaset/scalable-pod-identifier-667fd569ff             Created pod: scalable-pod-identifier-667fd569ff-9qb9k
+2m23s       Normal    Scheduled           pod/scalable-pod-identifier-667fd569ff-9qb9k              Successfully assigned default/scalable-pod-identifier-667fd569ff-9qb9k to minikube
+2m21s       Normal    Pulled              pod/scalable-pod-identifier-667fd569ff-9qb9k              Container image "scalable-pod-identifier:v1" already present on machine
+2m21s       Normal    Created             pod/scalable-pod-identifier-667fd569ff-9qb9k              Created container scalable-pod-identifier
+2m21s       Normal    Started             pod/scalable-pod-identifier-667fd569ff-9qb9k              Started container scalable-pod-identifier
+84s         Normal    SuccessfulRescale   horizontalpodautoscaler/scalable-pod-identifier-hpa-memory   New size: 4; reason: memory resource utilization (percentage of request) above target
+84s         Normal    ScalingReplicaSet   deployment/scalable-pod-identifier                        Scaled up replica set scalable-pod-identifier-667fd569ff from 2 to 4
+83s         Normal    SuccessfulCreate    replicaset/scalable-pod-identifier-667fd569ff             Created pod: scalable-pod-identifier-667fd569ff-cvc7s
+83s         Normal    SuccessfulCreate    replicaset/scalable-pod-identifier-667fd569ff             Created pod: scalable-pod-identifier-667fd569ff-r4hc9
+82s         Normal    Scheduled           pod/scalable-pod-identifier-667fd569ff-cvc7s              Successfully assigned default/scalable-pod-identifier-667fd569ff-cvc7s to minikube
+82s         Normal    Scheduled           pod/scalable-pod-identifier-667fd569ff-r4hc9              Successfully assigned default/scalable-pod-identifier-667fd569ff-r4hc9 to minikube
+81s         Normal    Pulled              pod/scalable-pod-identifier-667fd569ff-cvc7s              Container image "scalable-pod-identifier:v1" already present on machine
+81s         Normal    Created             pod/scalable-pod-identifier-667fd569ff-cvc7s              Created container scalable-pod-identifier
+81s         Normal    Started             pod/scalable-pod-identifier-667fd569ff-cvc7s              Started container scalable-pod-identifier
+81s         Normal    Pulled              pod/scalable-pod-identifier-667fd569ff-r4hc9              Container image "scalable-pod-identifier:v1" already present on machine
+81s         Normal    Created             pod/scalable-pod-identifier-667fd569ff-r4hc9              Created container scalable-pod-identifier
+81s         Normal    Started             pod/scalable-pod-identifier-667fd569ff-r4hc9              Started container scalable-pod-identifier
+24s         Normal    SuccessfulRescale   horizontalpodautoscaler/scalable-pod-identifier-hpa-memory   New size: 7; reason: memory resource utilization (percentage of request) above target
+24s         Normal    ScalingReplicaSet   deployment/scalable-pod-identifier                        Scaled up replica set scalable-pod-identifier-667fd569ff from 4 to 7
+23s         Normal    SuccessfulCreate    replicaset/scalable-pod-identifier-667fd569ff             Created pod: scalable-pod-identifier-667fd569ff-dfdxf
+23s         Normal    SuccessfulCreate    replicaset/scalable-pod-identifier-667fd569ff             Created pod: scalable-pod-identifier-667fd569ff-m9676
+23s         Normal    SuccessfulCreate    replicaset/scalable-pod-identifier-667fd569ff             Created pod: scalable-pod-identifier-667fd569ff-vbvl6
+22s         Normal    Scheduled           pod/scalable-pod-identifier-667fd569ff-dfdxf              Successfully assigned default/scalable-pod-identifier-667fd569ff-dfdxf to minikube
+22s         Normal    Scheduled           pod/scalable-pod-identifier-667fd569ff-m9676              Successfully assigned default/scalable-pod-identifier-667fd569ff-m9676 to minikube
+22s         Normal    Scheduled           pod/scalable-pod-identifier-667fd569ff-vbvl6              Successfully assigned default/scalable-pod-identifier-667fd569ff-vbvl6 to minikube
+21s         Normal    Pulled              pod/scalable-pod-identifier-667fd569ff-dfdxf              Container image "scalable-pod-identifier:v1" already present on machine
+21s         Normal    Created             pod/scalable-pod-identifier-667fd569ff-dfdxf              Created container scalable-pod-identifier
+21s         Normal    Started             pod/scalable-pod-identifier-667fd569ff-dfdxf              Started container scalable-pod-identifier
+21s         Normal    Pulled              pod/scalable-pod-identifier-667fd569ff-m9676              Container image "scalable-pod-identifier:v1" already present on machine
+21s         Normal    Created             pod/scalable-pod-identifier-667fd569ff-m9676              Created container scalable-pod-identifier
+21s         Normal    Started             pod/scalable-pod-identifier-667fd569ff-m9676              Started container scalable-pod-identifier
+21s         Normal    Pulled              pod/scalable-pod-identifier-667fd569ff-vbvl6              Container image "scalable-pod-identifier:v1" already present on machine
+21s         Normal    Created             pod/scalable-pod-identifier-667fd569ff-vbvl6              Created container scalable-pod-identifier
+21s         Normal    Started             pod/scalable-pod-identifier-667fd569ff-vbvl6              Started container scalable-pod-identifier
+
+# Примечание: Полная последовательность событий масштабирования от 1 до 7 реплик
+# Видно, что Kubernetes создавал поды параллельно на каждом этапе
+# Общее время масштабирования: ~2.5 минуты
